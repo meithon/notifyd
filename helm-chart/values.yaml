@@ -1,0 +1,57 @@
+replicaCount: 1
+
+image:
+  repository: notifyd
+  pullPolicy: IfNotPresent
+  tag: "0.0.1"
+
+service:
+  type: ClusterIP
+  port: 7777
+
+resources:
+  limits:
+    memory: 128Mi
+    cpu: 200m
+  requests:
+    memory: 64Mi
+    cpu: 50m
+
+# Environment variables
+env:
+  PORT: "7777"
+  LOG_LEVEL: "info"
+
+# Node port (only if service.type == NodePort)
+# nodePort: 30777
+
+# Pod annotations
+podAnnotations: {}
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  readOnlyRootFilesystem: true
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Liveness / readiness probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 7777
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 7777
+  initialDelaySeconds: 3
+  periodSeconds: 5

@@ -1,0 +1,28 @@
+{
+  "name": "@notifyd/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "notify": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "bundle": "node bundle.mjs",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@notifyd/server": "workspace:*",
+    "@notifyd/shared": "workspace:*",
+    "@trpc/client": "^11.1",
+    "@trpc/server": "^11.1",
+    "commander": "^13"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.19",
+    "typescript": "^5.7"
+  }
+}
