@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { createClient, getSseUrl } from './client.js';
 import { exec } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { expandCommandTemplate } from './command-template.js';
 
 const program = new Command();
 
@@ -11,39 +12,8 @@ program
   .version('0.0.1')
   .option('-u, --url <url>', 'notifyd server URL', process.env.NOTIFYD_URL ?? 'http://127.0.0.1:7777');
 
-function shellEscape(value: string): string {
-  // Escape characters that the shell would interpret: $ ` \ ! " '
-  // Wraps in single quotes and escapes any single quotes within.
-  // For values inside double-quotes, we need to escape $ ` \ and "
-  return value.replace(/([$`\\"])/g, '\\$1');
-}
-
-function expandMetaFields(command: string, meta: Record<string, unknown> | undefined): string {
-  // Replace ${meta.KEY} with meta[KEY] (flat key)
-  // Replace ${meta.KEY.SUB} with meta[KEY][SUB] (nested dot notation)
-  return command.replace(/\$\{meta\.([a-zA-Z0-9_.]+)\}/g, (_, path) => {
-    if (!meta) return '';
-    const parts = path.split('.');
-    let value: unknown = meta;
-    for (const part of parts) {
-      if (value && typeof value === 'object') {
-        value = (value as Record<string, unknown>)[part];
-      } else {
-        return '';
-      }
-    }
-    return value == null ? '' : shellEscape(String(value));
-  });
-}
-
 function executeCommand(command: string, event: Record<string, unknown>): void {
-  const expanded = command
-    .replace(/\$\{title\}/g, shellEscape(String(event.title ?? '')))
-    .replace(/\$\{message\}/g, shellEscape(String(event.message ?? '')))
-    .replace(/\$\{level\}/g, shellEscape(String(event.level ?? 'info')))
-    .replace(/\$\{group\}/g, shellEscape(String(event.group ?? '')))
-    .replace(/\$\{meta\}/g, event.meta ? shellEscape(JSON.stringify(event.meta)) : '');
-  const withMetaFields = expandMetaFields(expanded, event.meta as Record<string, unknown> | undefined);
+  const withMetaFields = expandCommandTemplate(command, event);
 
   const env = {
     ...process.env,
@@ -103,7 +73,7 @@ program
 program
   .command('subscribe')
   .description('Subscribe to events and execute a command locally')
-  .requiredOption('-c, --command <command>', 'Shell command to run on each event. Templates: ${title}, ${message}, ${level}, ${group}, ${meta}, ${meta_KEY}')
+  .requiredOption('-c, --command <command>', 'Shell command to run on each event. Templates: ${title}, ${message}, ${level}, ${group}, ${meta}, ${meta.KEY}')
   .option('--group-filter <groups>', 'Only receive events matching these groups (comma-separated)')
   .action(async (options) => {
     const url = program.opts().url;
